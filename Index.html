@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Blink Spanish</title>
+    <style>
+        :root { --gold: #d4a017; --bg: #fdfaf1; --win: #27ae60; --lose: #e74c3c; }
+        * { box-sizing: border-box; touch-action: none; -webkit-user-select: none; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: #fff; padding: 10px; text-align: center; border-bottom: 1px solid #ddd; }
+        .bar { width: 100%; height: 6px; background: #eee; border-radius: 3px; margin: 8px 0; position: relative; }
+        #fill { height: 100%; background: var(--win); width: 0%; transition: 0.3s; }
+        .stats { display: flex; justify-content: space-around; font-size: 12px; font-weight: bold; color: #666; }
+        #container { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; perspective: 1000px; }
+        .card { 
+            width: 90%; height: 70%; background: #fff; border-radius: 20px; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: flex; align-items: center; 
+            justify-content: center; text-align: center; padding: 20px; font-size: 1.8rem; 
+            position: absolute; transition: transform 0.1s; border: 1px solid #eee;
+        }
+        .label { position: absolute; top: 20px; font-size: 10px; letter-spacing: 2px; color: var(--gold); font-weight: 900; width: 100%; text-transform: uppercase; }
+        #speak-btn {
+            position: absolute; top: 10px; right: 20px; z-index: 20; background: white;
+            border: 2px solid var(--gold); border-radius: 50%; width: 45px; height: 45px;
+            font-size: 20px; display: flex; align-items: center; justify-content: center;
+        }
+        .btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 20px; background: #fff; padding-bottom: 30px; }
+        button { border: none; border-radius: 10px; padding: 15px; color: #fff; font-weight: 800; font-size: 14px; }
+        .red { background: var(--lose); } .grn { background: var(--win); } .grey { background: #95a5a6; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div style="font-weight:900;color:var(--gold)">SPANISH FLASHCARDS</div>
+    <div class="bar"><div id="fill"></div></div>
+    <div class="stats">
+        <span>⏱️ <span id="time">00:00</span></span>
+        <span>✅ <span id="done">0</span>/<span id="total">0</span></span>
+    </div>
+</div>
+
+<div id="container">
+    <button id="speak-btn" onclick="speakSpanish()">🔊</button>
+    <div id="card" class="card">
+        <div id="lbl" class="label">Spanish</div>
+        <div id="txt">Tap to Start</div>
+    </div>
+</div>
+
+<div class="btns">
+    <button class="red" onclick="swipe('L')">MISS</button>
+    <button class="grey" onclick="reset()">RESET</button>
+    <button class="grn" onclick="swipe('R')">GOT IT</button>
+</div>
+
+<script>
+const words = [
+    {es: "el cuaderno", en: "Notebook"}, {es: "la carpeta", en: "folder"}, {es: "el bolígrafo", en: "pen"},
+    {es: "la puerta", en: "door"}, {es: "la ventana", en: "Window"}, {es: "el celular", en: "Cellphone"},
+    {es: "el mensaje", en: "message"}, {es: "la comida", en: "food"}, {es: "la película", en: "Movie"},
+    {es: "el almuerzo", en: "lunch"}, {es: "el desayuno", en: "breakfast"}, {es: "la cena", en: "dinner"},
+    {es: "la billetera", en: "wallet"}, {es: "las llaves", en: "keys"}, {es: "difícil", en: "difficult"},
+    {es: "caro", en: "expensive"}, {es: "barato", en: "cheap"}, {es: "largo", en: "long"},
+    {es: "grande", en: "big"}, {es: "la flor", en: "flower"}, {es: "el día", en: "day"},
+    {es: "el carro", en: "car"}, {es: "el gato", en: "Cat"}, {es: "el arroz", en: "rice"},
+    {es: "la cebolla", en: "onion"}, {es: "el pan", en: "bread"}, {es: "el aceite", en: "oil"},
+    {es: "la zanahoria", en: "Carrot"}, {es: "la pimienta", en: "pepper"}, {es: "las lentejas", en: "lentils"},
+    {es: "los frijoles", en: "Beans"}, {es: "dulce", en: "Sweet"}, {es: "salado", en: "salty"},
+    {es: "amargo", en: "bitter"}, {es: "el azúcar", en: "Sugar"}, {es: "picante", en: "Spicy"},
+    {es: "Estudiar", en: "To study"}, {es: "Viajar", en: "To travel"}, {es: "Practicar", en: "To practice"},
+    {es: "Aprender", en: "To learn"}, {es: "Escribir", en: "To write"}, {es: "Leer", en: "To read"},
+    {es: "Explorar", en: "To explore"}, {es: "Comprar", en: "To buy"}, {es: "Comer", en: "To eat"},
+    {es: "Visitar", en: "To visit"}, {es: "Bailar", en: "To dance"}, {es: "Beber", en: "To drink"},
+    {es: "Vivir", en: "To live"}, {es: "Escuchar", en: "To listen"},
+    {es: "El profesor/La profesora", en: "Professor"}, {es: "El maestro/La maestra", en: "Teacher"},
+    {es: "El estudiante", en: "Student"}, {es: "El alumno", en: "Student"}, {es: "La escuela", en: "School"},
+    {es: "La persona", en: "Person"}, {es: "La oficina", en: "Office"}, {es: "El trabajo", en: "Job or Work"},
+    {es: "La computadora", en: "Computer"}, {es: "El documento", en: "Document"}, {es: "El lápiz", en: "Pencil"},
+    {es: "El lapicero", en: "Pen"}, {es: "La tarea", en: "Homework"}, {es: "La casa", en: "Home"},
+    {es: "La silla", en: "Chair"}, {es: "El baño", en: "Bathroom"}, {es: "El bus", en: "Bus"},
+    {es: "La bicicleta", en: "Bike"}, {es: "La moto", en: "Motorcycle"},
+    {es: "Muy", en: "Very"}, {es: "Mucho", en: "A lot"}, {es: "Poco/Poca", en: "Little"},
+    {es: "Bien", en: "Good"}, {es: "Bueno/Buena", en: "Good"}, {es: "Malo/Mala", en: "Bad"},
+    {es: "Feliz", en: "Happy"}, {es: "Lindo/Linda", en: "Pretty or Nice"}, {es: "Feo/Fea", en: "Ugly"},
+    {es: "Hermosa/Hermoso", en: "Beautiful"}, {es: "Bonito/Bonita", en: "Pretty"}, {es: "Guapo/Guapa", en: "Sexy"},
+    {es: "Triste", en: "Sad"}, {es: "Inteligente", en: "Smart"}, {es: "Listo/Lista", en: "Ready or Smart"},
+    {es: "Genial", en: "Awesome"}, {es: "Lento/Lenta", en: "Slow"},
+    {es: "Hola", en: "Hi/Hello"}, {es: "¿Cómo?", en: "How"}, {es: "¿Qué?", en: "What"},
+    {es: "¡Qué bien!", en: "How good!"}, {es: "¡Qué lindo!", en: "How pretty / How nice"},
+    {es: "¿Cómo estás?", en: "How are you?"}, {es: "Estoy bien", en: "I am well"}, {es: "¿Y tú?", en: "And you?"},
+    {es: "¿Cómo se dice...?", en: "How do you say...?"}, {es: "¿Cómo te llamas?", en: "What is your name?"},
+    {es: "Me llamo Gavin", en: "My name is Gavin"}, {es: "Soy (Gavin)", en: "I am (Gavin)"},
+    {es: "¿Dónde?", en: "Where"}, {es: "¿Dónde está (el baño)?", en: "Where is the bathroom"},
+    {es: "¿Dónde estás?", en: "Where are you?"}, {es: "¿Dónde está?", en: "Where is it located?"}
+];
+
+let deck = JSON.parse(localStorage.getItem('es_deck')) || [...words];
+let curIdx = 0, isFlipped = false, side = 'es', startTime = null;
+
+const card = document.getElementById('card');
+const txt = document.getElementById('txt');
+const lbl = document.getElementById('lbl');
+
+function update() {
+    const done = words.length - deck.length;
+    document.getElementById('done').innerText = done;
+    document.getElementById('total').innerText = words.length;
+    document.getElementById('fill').style.width = (done/words.length*100) + '%';
+    localStorage.setItem('es_deck', JSON.stringify(deck));
+}
+
+function next() {
+    if (deck.length === 0) { txt.innerText = "🏆 FINISHED!"; return; }
+    curIdx = Math.floor(Math.random() * deck.length);
+    isFlipped = false;
+    side = Math.random() > 0.5 ? 'es' : 'en';
+    card.style.transform = 'translateX(0) rotate(0)';
+    card.style.opacity = '1';
+    render();
+}
+
+function render() {
+    const s = isFlipped ? (side === 'es' ? 'en' : 'es') : side;
+    lbl.innerText = s === 'es' ? 'Spanish' : 'English';
+    txt.innerText = deck[curIdx][s];
+}
+
+function flip() {
+    if(!startTime) {
+        startTime = Date.now();
+        setInterval(() => {
+            const sec = Math.floor((Date.now()-startTime)/1000);
+            document.getElementById('time').innerText = Math.floor(sec/60).toString().padStart(2,'0') + ":" + (sec%60).toString().padStart(2,'0');
+        }, 1000);
+    }
+    isFlipped = !isFlipped;
+    render();
+}
+
+function speakSpanish() {
+    if (deck.length === 0) return;
+    const msg = new SpeechSynthesisUtterance();
+    msg.text = deck[curIdx].es; 
+    msg.lang = 'es-ES';
+    msg.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(msg);
+}
+
+function swipe(dir) {
+    if (deck.length === 0) return;
+    card.style.transition = '0.3s';
+    if (dir === 'R') {
+        card.style.transform = 'translateX(500px) rotate(30deg)';
+        deck.splice(curIdx, 1);
+    } else {
+        card.style.transform = 'translateX(-500px) rotate(-30deg)';
+    }
+    card.style.opacity = '0';
+    update();
+    setTimeout(() => { card.style.transition = '0.1s'; next(); }, 300);
+}
+
+function reset() {
+    if(confirm("Reset?")) { localStorage.removeItem('es_deck'); location.reload(); }
+}
+
+let sX = 0;
+card.addEventListener('touchstart', e => sX = e.touches[0].clientX);
+card.addEventListener('touchmove', e => {
+    let mX = e.touches[0].clientX - sX;
+    card.style.transform = `translateX(${mX}px) rotate(${mX/20}deg)`;
+});
+card.addEventListener('touchend', e => {
+    let mX = e.changedTouches[0].clientX - sX;
+    if (Math.abs(mX) > 100) swipe(mX > 0 ? 'R' : 'L');
+    else { card.style.transform = 'translateX(0) rotate(0)'; if(Math.abs(mX) < 5) flip(); }
+});
+
+update(); next();
+</script>
+</body>
+</html>
